@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Paper from '@mui/material/Paper';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -17,6 +17,10 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
 import ViewColumnIcon from '@mui/icons-material/ViewColumn';
+import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import StatusChip from './StatusChip';
 import LocationBadge from './LocationBadge';
 
@@ -24,6 +28,8 @@ const ROWS_PER_PAGE = 10;
 
 const ALL_COLUMNS = [
   { key: 'name',     label: 'Plant Name', defaultVisible: true  },
+  { key: 'potSize',  label: 'Pot Size',   defaultVisible: true  },
+  { key: 'qty',      label: 'Qty',        defaultVisible: true  },
   { key: 'location', label: 'Location',   defaultVisible: true  },
   { key: 'status',   label: 'Status',     defaultVisible: true  },
   { key: 'price',    label: 'Price',      defaultVisible: true  },
@@ -31,7 +37,11 @@ const ALL_COLUMNS = [
   { key: 'batch',    label: 'Batch',      defaultVisible: false },
 ];
 
-export default function PlantTable({ filtered, search, page, setPage, sortConfig, onSort, selectedRow, setSelectedRow }) {
+const LOW_STOCK_THRESHOLD = 5;
+
+const POT_SIZES = ['7cm', '9cm', '1L', '2L', '3L', '5L', '10L', '20L'];
+
+export default function PlantTable({ filtered, search, page, setPage, sortConfig, onSort, selectedRow, setSelectedRow, onUpdateQty, onUpdatePotSize }) {
   const totalPages = Math.ceil(filtered.length / ROWS_PER_PAGE);
   const paginated  = filtered.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
 
@@ -141,7 +151,10 @@ export default function PlantTable({ filtered, search, page, setPage, sortConfig
                   colSpan={colSpan}
                   onToggle={() => setSelectedRow(isSelected ? null : plant)}
                   onClose={() => setSelectedRow(null)}
+                  onUpdateQty={onUpdateQty}
+                  onUpdatePotSize={onUpdatePotSize}
                 />
+
               );
             })}
           </TableBody>
@@ -174,7 +187,69 @@ export default function PlantTable({ filtered, search, page, setPage, sortConfig
   );
 }
 
-function ExpandableRow({ plant, i, isSelected, visibleColumns, colSpan, onToggle, onClose }) {
+function PotSizeCell({ plant, onUpdatePotSize }) {
+  return (
+    <Select
+      size="small"
+      value={plant.potSize}
+      onClick={e => e.stopPropagation()}
+      onChange={e => onUpdatePotSize(plant.id, e.target.value)}
+      sx={{
+        fontSize: 13,
+        fontWeight: 600,
+        minWidth: 80,
+        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' },
+      }}
+    >
+      {POT_SIZES.map(size => (
+        <MenuItem key={size} value={size} sx={{ fontSize: 13, fontWeight: 500 }}>
+          {size}
+        </MenuItem>
+      ))}
+    </Select>
+  );
+}
+
+function QtyCell({ plant, onUpdateQty }) {
+  const [value, setValue] = useState(plant.qty);
+  const isLow     = value > 0 && value <= LOW_STOCK_THRESHOLD;
+  const isOutOf   = value === 0;
+
+  const commit = useCallback((raw) => {
+    const next = Math.max(0, parseInt(raw, 10) || 0);
+    setValue(next);
+    onUpdateQty(plant.id, next);
+  }, [plant.id, onUpdateQty]);
+
+  return (
+    <Tooltip title={isOutOf ? 'Out of stock' : isLow ? 'Low stock' : ''} placement="top" disableHoverListener={!isLow && !isOutOf}>
+      <TextField
+        type="number"
+        size="small"
+        value={value}
+        onClick={e => e.stopPropagation()}
+        onChange={e => setValue(e.target.value)}
+        onBlur={e => commit(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') { e.target.blur(); } e.stopPropagation(); }}
+        slotProps={{ htmlInput: { min: 0, style: { textAlign: 'center', padding: '4px 6px', width: 54, fontWeight: 700 } } }}
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            fontSize: 13,
+            bgcolor: isOutOf ? '#fef2f2' : isLow ? '#fffbeb' : 'white',
+            '& fieldset': {
+              borderColor: isOutOf ? 'error.main' : isLow ? 'warning.main' : 'divider',
+            },
+            '&:hover fieldset': {
+              borderColor: isOutOf ? 'error.main' : isLow ? 'warning.main' : 'primary.main',
+            },
+          },
+        }}
+      />
+    </Tooltip>
+  );
+}
+
+function ExpandableRow({ plant, i, isSelected, visibleColumns, colSpan, onToggle, onClose, onUpdateQty, onUpdatePotSize }) {
   const cellContent = {
     name: (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
@@ -206,6 +281,8 @@ function ExpandableRow({ plant, i, isSelected, visibleColumns, colSpan, onToggle
         £{plant.price.toFixed(2)}
       </Typography>
     ),
+    potSize:  <PotSizeCell plant={plant} onUpdatePotSize={onUpdatePotSize} />,
+    qty:      <QtyCell plant={plant} onUpdateQty={onUpdateQty} />,
     status:   <StatusChip status={plant.status} />,
     location: <LocationBadge location={plant.location} />,
   };

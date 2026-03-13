@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Box from '@mui/material/Box';
-import { PLANTS, INITIAL_LOCATIONS } from './data/plants';
+import { PLANTS, INITIAL_LOCATIONS } from './data/plants'; // PLANTS used as initial state
 import { STATUS_CONFIG } from './constants/config';
 import Header from './components/Header';
 import ScannerPanel from './components/ScannerPanel';
@@ -16,6 +16,10 @@ export default function App() {
   const [scanMode, setScanMode]           = useState(false);
   const [showLocations, setShowLocations] = useState(false);
   const [locations, setLocations]         = useState(INITIAL_LOCATIONS);
+  const [plants, setPlants]               = useState(PLANTS);
+
+  const updateQty     = (id, qty)     => setPlants(prev => prev.map(p => p.id === id ? { ...p, qty }     : p));
+  const updatePotSize = (id, potSize) => setPlants(prev => prev.map(p => p.id === id ? { ...p, potSize } : p));
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', color: 'text.primary' }}>
@@ -33,6 +37,9 @@ export default function App() {
             setShowLocations={setShowLocations}
             locations={locations}
             setLocations={setLocations}
+            plants={plants}
+            updateQty={updateQty}
+            updatePotSize={updatePotSize}
           />
         } />
         <Route path="/locations"      element={<LocationsPage />} />
@@ -42,7 +49,7 @@ export default function App() {
   );
 }
 
-function PlantsPage({ scanMode, showLocations, setShowLocations, locations, setLocations }) {
+function PlantsPage({ scanMode, showLocations, setShowLocations, locations, setLocations, plants, updateQty, updatePotSize }) {
   const [search, setSearch]             = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedRow, setSelectedRow]   = useState(null);
@@ -50,15 +57,15 @@ function PlantsPage({ scanMode, showLocations, setShowLocations, locations, setL
   const [page, setPage]                 = useState(0);
 
   const statusCounts = useMemo(() => {
-    const counts = { All: PLANTS.length };
+    const counts = { All: plants.length };
     Object.keys(STATUS_CONFIG).forEach(s => {
-      counts[s] = PLANTS.filter(p => p.status === s).length;
+      counts[s] = plants.filter(p => p.status === s).length;
     });
     return counts;
-  }, []);
+  }, [plants]);
 
   const filtered = useMemo(() => {
-    let data = [...PLANTS];
+    let data = [...plants];
     if (search) {
       const q = search.toLowerCase();
       data = data.filter(p =>
@@ -89,7 +96,7 @@ function PlantsPage({ scanMode, showLocations, setShowLocations, locations, setL
       <Box sx={{ p: '24px 32px', maxWidth: 1400, mx: 'auto' }}>
         {scanMode && <ScannerPanel />}
 
-        <StatsRow plants={PLANTS} statusCounts={statusCounts} />
+        <StatsRow plants={plants} statusCounts={statusCounts} />
 
         <FilterBar
           search={search}
@@ -109,6 +116,8 @@ function PlantsPage({ scanMode, showLocations, setShowLocations, locations, setL
           onSort={handleSort}
           selectedRow={selectedRow}
           setSelectedRow={setSelectedRow}
+          onUpdateQty={updateQty}
+          onUpdatePotSize={updatePotSize}
         />
       </Box>
 
