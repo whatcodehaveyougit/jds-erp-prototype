@@ -1,7 +1,10 @@
 import { useState, useMemo } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Box from '@mui/material/Box';
-import { PLANTS, INITIAL_LOCATIONS } from './data/plants'; // PLANTS used as initial state
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import { usePlants } from './hooks/usePlants';
+import { useLocations } from './hooks/useLocations';
 import { STATUS_CONFIG } from './constants/config';
 import Header from './components/Header';
 import ScannerPanel from './components/ScannerPanel';
@@ -15,11 +18,9 @@ import DesignSystemPage from './pages/DesignSystemPage';
 export default function App() {
   const [scanMode, setScanMode]           = useState(false);
   const [showLocations, setShowLocations] = useState(false);
-  const [locations, setLocations]         = useState(INITIAL_LOCATIONS);
-  const [plants, setPlants]               = useState(PLANTS);
 
-  const updateQty     = (id, qty)     => setPlants(prev => prev.map(p => p.id === id ? { ...p, qty }     : p));
-  const updatePotSize = (id, potSize) => setPlants(prev => prev.map(p => p.id === id ? { ...p, potSize } : p));
+  const { plants, loading: plantsLoading, error: plantsError, updateQty, updatePotSize } = usePlants();
+  const { locations, setLocations, loading: locationsLoading, addLocation }              = useLocations();
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', color: 'text.primary' }}>
@@ -37,7 +38,11 @@ export default function App() {
             setShowLocations={setShowLocations}
             locations={locations}
             setLocations={setLocations}
+            addLocation={addLocation}
+            locationsLoading={locationsLoading}
             plants={plants}
+            plantsLoading={plantsLoading}
+            plantsError={plantsError}
             updateQty={updateQty}
             updatePotSize={updatePotSize}
           />
@@ -49,7 +54,12 @@ export default function App() {
   );
 }
 
-function PlantsPage({ scanMode, showLocations, setShowLocations, locations, setLocations, plants, updateQty, updatePotSize }) {
+function PlantsPage({
+  scanMode, showLocations, setShowLocations,
+  locations, setLocations, addLocation, locationsLoading,
+  plants, plantsLoading, plantsError,
+  updateQty, updatePotSize,
+}) {
   const [search, setSearch]             = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedRow, setSelectedRow]   = useState(null);
@@ -84,47 +94,65 @@ function PlantsPage({ scanMode, showLocations, setShowLocations, locations, setL
       return sortConfig.dir === 'asc' ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
     });
     return data;
-  }, [search, statusFilter, sortConfig]);
+  }, [search, statusFilter, sortConfig, plants]);
 
   const handleSort = key => {
     setSortConfig(prev => ({ key, dir: prev.key === key && prev.dir === 'asc' ? 'desc' : 'asc' }));
     setPage(0);
   };
 
+  if (plantsError) {
+    return (
+      <Box sx={{ p: 4, maxWidth: 600, mx: 'auto' }}>
+        <Alert severity="error">Failed to load plants: {plantsError}</Alert>
+      </Box>
+    );
+  }
+
   return (
     <>
       <Box sx={{ p: '24px 32px', maxWidth: 1400, mx: 'auto' }}>
-        {scanMode && <ScannerPanel />}
+        {scanMode && <ScannerPanel plants={plants} />}
 
-        <StatsRow plants={plants} statusCounts={statusCounts} />
+        {plantsLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <>
+            <StatsRow plants={plants} statusCounts={statusCounts} />
 
-        <FilterBar
-          search={search}
-          setSearch={setSearch}
-          statusFilter={statusFilter}
-          setStatusFilter={setStatusFilter}
-          statusCounts={statusCounts}
-          onPageReset={() => setPage(0)}
-        />
+            <FilterBar
+              search={search}
+              setSearch={setSearch}
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+              statusCounts={statusCounts}
+              onPageReset={() => setPage(0)}
+            />
 
-        <PlantTable
-          filtered={filtered}
-          search={search}
-          page={page}
-          setPage={setPage}
-          sortConfig={sortConfig}
-          onSort={handleSort}
-          selectedRow={selectedRow}
-          setSelectedRow={setSelectedRow}
-          onUpdateQty={updateQty}
-          onUpdatePotSize={updatePotSize}
-        />
+            <PlantTable
+              filtered={filtered}
+              search={search}
+              page={page}
+              setPage={setPage}
+              sortConfig={sortConfig}
+              onSort={handleSort}
+              selectedRow={selectedRow}
+              setSelectedRow={setSelectedRow}
+              onUpdateQty={updateQty}
+              onUpdatePotSize={updatePotSize}
+            />
+          </>
+        )}
       </Box>
 
       {showLocations && (
         <LocationModal
           locations={locations}
           setLocations={setLocations}
+          addLocation={addLocation}
+          plants={plants}
           onClose={() => setShowLocations(false)}
         />
       )}

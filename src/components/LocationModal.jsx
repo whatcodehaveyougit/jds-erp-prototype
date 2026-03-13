@@ -17,10 +17,9 @@ import CloseIcon from '@mui/icons-material/Close';
 import PlaceIcon from '@mui/icons-material/Place';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import { LOCATION_TYPES, TYPE_COLORS } from '../constants/config';
-import { PLANTS } from '../data/plants';
 import LocationBadge from './LocationBadge';
 
-export default function LocationModal({ locations, setLocations, onClose }) {
+export default function LocationModal({ locations, setLocations, addLocation, plants = [], onClose }) {
   const [tab, setTab] = useState(0);
   const [form, setForm] = useState({ zone: '', aisle: '', shelf: '', description: '', capacity: '', type: 'Warehouse' });
 
@@ -28,11 +27,10 @@ export default function LocationModal({ locations, setLocations, onClose }) {
     ? `${form.zone}-${form.aisle.padStart(2, '0')}-${form.shelf}`
     : null;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.zone || !form.aisle || !form.shelf) return;
     const code = `${form.zone}-${form.aisle.padStart(2, '0')}-${form.shelf}`;
-    const id = `LOC-${String(locations.length + 1).padStart(3, '0')}`;
-    setLocations(prev => [...prev, { ...form, id, code, capacity: Number(form.capacity) || 20 }]);
+    await addLocation({ ...form, code, capacity: Number(form.capacity) || 20 });
     setForm({ zone: '', aisle: '', shelf: '', description: '', capacity: '', type: 'Warehouse' });
     setTab(0);
   };
@@ -76,7 +74,7 @@ export default function LocationModal({ locations, setLocations, onClose }) {
       </Box>
 
       <DialogContent sx={{ p: 0, overflow: 'auto' }}>
-        {tab === 0 && <LocationList locations={locations} />}
+        {tab === 0 && <LocationList locations={locations} plants={plants} />}
         {tab === 1 && (
           <AddLocationForm
             form={form}
@@ -92,12 +90,12 @@ export default function LocationModal({ locations, setLocations, onClose }) {
   );
 }
 
-function LocationList({ locations }) {
+function LocationList({ locations, plants }) {
   return (
     <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
       {locations.map(loc => {
         const tc = TYPE_COLORS[loc.type] || { color: '#64748b', bg: '#f1f5f9' };
-        const plantCount = PLANTS.filter(p => p.location === loc.code).length;
+        const plantCount = plants.filter(p => p.location === loc.code).length;
         const pct = plantCount / loc.capacity;
         const barColor = pct >= 1 ? '#fca5a5' : pct > 0.7 ? '#fcd34d' : '#86efac';
 
