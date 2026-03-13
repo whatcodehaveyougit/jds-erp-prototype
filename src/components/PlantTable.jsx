@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Paper from '@mui/material/Paper';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -9,62 +10,103 @@ import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import Collapse from '@mui/material/Collapse';
+import Popover from '@mui/material/Popover';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Checkbox from '@mui/material/Checkbox';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
+import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 import StatusChip from './StatusChip';
 import LocationBadge from './LocationBadge';
 
 const ROWS_PER_PAGE = 10;
 
+const ALL_COLUMNS = [
+  { key: 'name',     label: 'Plant Name', defaultVisible: true  },
+  { key: 'location', label: 'Location',   defaultVisible: true  },
+  { key: 'status',   label: 'Status',     defaultVisible: true  },
+  { key: 'price',    label: 'Price',      defaultVisible: true  },
+  { key: 'id',       label: 'Plant ID',   defaultVisible: false },
+  { key: 'batch',    label: 'Batch',      defaultVisible: false },
+];
+
 export default function PlantTable({ filtered, search, page, setPage, sortConfig, onSort, selectedRow, setSelectedRow }) {
   const totalPages = Math.ceil(filtered.length / ROWS_PER_PAGE);
   const paginated  = filtered.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
 
-  const columns = [
-    { key: 'id',       label: 'Plant ID' },
-    { key: 'name',     label: 'Plant Name' },
-    { key: 'batch',    label: 'Batch' },
-    { key: 'price',    label: 'Price' },
-    { key: 'status',   label: 'Status' },
-    { key: 'location', label: 'Location' },
-  ];
+  const [visibleCols, setVisibleCols] = useState(
+    () => ALL_COLUMNS.reduce((acc, col) => ({ ...acc, [col.key]: col.defaultVisible }), {})
+  );
+  const [colAnchor, setColAnchor] = useState(null);
+
+  const visibleColumns = ALL_COLUMNS.filter(c => visibleCols[c.key]);
+  const colSpan        = visibleColumns.length + 1; // +1 for actions
+
+  const toggleCol = key => setVisibleCols(prev => ({ ...prev, [key]: !prev[key] }));
 
   const SortIcon = ({ col }) => {
     if (sortConfig.key !== col) return <SwapVertIcon sx={{ fontSize: 14, ml: 0.5, color: 'text.disabled', verticalAlign: 'middle' }} />;
     return sortConfig.dir === 'asc'
-      ? <ArrowUpwardIcon sx={{ fontSize: 14, ml: 0.5, color: 'primary.main', verticalAlign: 'middle' }} />
+      ? <ArrowUpwardIcon  sx={{ fontSize: 14, ml: 0.5, color: 'primary.main', verticalAlign: 'middle' }} />
       : <ArrowDownwardIcon sx={{ fontSize: 14, ml: 0.5, color: 'primary.main', verticalAlign: 'middle' }} />;
   };
 
   return (
     <Paper variant="outlined" sx={{ borderColor: 'divider', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+
       {/* Info bar */}
-      <Box sx={{
-        px: 2.5, py: 1.75,
-        borderBottom: '1px solid',
-        borderColor: 'divider',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-      }}>
+      <Box sx={{ px: 2.5, py: 1.75, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-          Showing{' '}
-          <strong style={{ color: '#1e293b' }}>{paginated.length}</strong> of{' '}
-          <strong style={{ color: '#1e293b' }}>{filtered.length}</strong> results
-          {search && <span style={{ color: '#6aaa1f' }}> for "{search}"</span>}
+          Showing <strong>{paginated.length}</strong> of <strong>{filtered.length}</strong> results
+          {search && <Box component="span" sx={{ color: 'primary.main' }}> for "{search}"</Box>}
         </Typography>
-        <Typography variant="caption" color="text.disabled">
-          Page {page + 1} of {totalPages || 1}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Typography variant="caption" color="text.disabled">
+            Page {page + 1} of {totalPages || 1}
+          </Typography>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<ViewColumnIcon />}
+            onClick={e => setColAnchor(e.currentTarget)}
+            sx={{ fontWeight: 600, fontSize: 12, borderColor: 'divider', color: 'text.secondary' }}
+          >
+            Columns
+          </Button>
+        </Box>
       </Box>
+
+      {/* Column visibility popover */}
+      <Popover
+        open={Boolean(colAnchor)}
+        anchorEl={colAnchor}
+        onClose={() => setColAnchor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Box sx={{ p: 2, minWidth: 190 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 11, mb: 1.5, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Show / Hide Columns
+          </Typography>
+          {ALL_COLUMNS.map(col => (
+            <Box key={col.key}>
+              <FormControlLabel
+                control={<Checkbox size="small" checked={visibleCols[col.key]} onChange={() => toggleCol(col.key)} color="primary" />}
+                label={<Typography sx={{ fontSize: 13, fontWeight: 500 }}>{col.label}</Typography>}
+                sx={{ display: 'flex', mx: 0, mb: 0.25 }}
+              />
+            </Box>
+          ))}
+        </Box>
+      </Popover>
 
       {/* Table */}
       <TableContainer>
         <Table>
           <TableHead>
             <TableRow sx={{ bgcolor: '#f8fafc', borderBottom: '1px solid', borderColor: 'divider' }}>
-              {columns.map(col => (
+              {visibleColumns.map(col => (
                 <TableCell
                   key={col.key}
                   onClick={() => onSort(col.key)}
@@ -79,7 +121,7 @@ export default function PlantTable({ filtered, search, page, setPage, sortConfig
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} sx={{ py: 6, textAlign: 'center' }}>
+                <TableCell colSpan={colSpan} sx={{ py: 6, textAlign: 'center' }}>
                   <Box sx={{ fontSize: 32, mb: 1 }}>🔍</Box>
                   <Typography sx={{ fontWeight: 600 }}>No plants found</Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
@@ -95,6 +137,8 @@ export default function PlantTable({ filtered, search, page, setPage, sortConfig
                   plant={plant}
                   i={i}
                   isSelected={isSelected}
+                  visibleColumns={visibleColumns}
+                  colSpan={colSpan}
                   onToggle={() => setSelectedRow(isSelected ? null : plant)}
                   onClose={() => setSelectedRow(null)}
                 />
@@ -105,15 +149,7 @@ export default function PlantTable({ filtered, search, page, setPage, sortConfig
       </TableContainer>
 
       {/* Pagination */}
-      <Box sx={{
-        px: 2.5, py: 1.5,
-        borderTop: '1px solid',
-        borderColor: 'divider',
-        display: 'flex',
-        justifyContent: 'flex-end',
-        alignItems: 'center',
-        gap: 0.75,
-      }}>
+      <Box sx={{ px: 2.5, py: 1.5, borderTop: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 0.75 }}>
         <PagBtn disabled={page === 0} onClick={() => setPage(p => p - 1)} label="← Prev" />
         {Array.from({ length: totalPages }, (_, i) => (
           <Button
@@ -123,12 +159,8 @@ export default function PlantTable({ filtered, search, page, setPage, sortConfig
             color="primary"
             size="small"
             sx={{
-              minWidth: 32,
-              width: 32,
-              height: 32,
-              p: 0,
-              fontSize: 13,
-              fontWeight: 600,
+              minWidth: 32, width: 32, height: 32, p: 0,
+              fontSize: 13, fontWeight: 600,
               borderColor: page === i ? 'primary.main' : '#e2e8f0',
               color: page === i ? 'white' : '#475569',
             }}
@@ -142,52 +174,56 @@ export default function PlantTable({ filtered, search, page, setPage, sortConfig
   );
 }
 
-function ExpandableRow({ plant, i, isSelected, onToggle, onClose }) {
+function ExpandableRow({ plant, i, isSelected, visibleColumns, colSpan, onToggle, onClose }) {
+  const cellContent = {
+    name: (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+        <Box sx={{
+          width: 30, height: 30, borderRadius: 1,
+          background: 'linear-gradient(135deg, #d1fae5, #a7f3d0)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 15, flexShrink: 0,
+        }}>
+          🌱
+        </Box>
+        <Typography sx={{ fontWeight: 600, fontSize: 14, color: 'text.primary' }}>
+          {plant.name}
+        </Typography>
+      </Box>
+    ),
+    id: (
+      <Typography sx={{ fontFamily: 'monospace', fontSize: 12, color: 'text.secondary', fontWeight: 600 }}>
+        {plant.id}
+      </Typography>
+    ),
+    batch: (
+      <Typography sx={{ fontFamily: 'monospace', fontSize: 11, color: 'text.disabled' }}>
+        {plant.batch}
+      </Typography>
+    ),
+    price: (
+      <Typography sx={{ fontWeight: 700, color: 'primary.dark', fontSize: 14 }}>
+        £{plant.price.toFixed(2)}
+      </Typography>
+    ),
+    status:   <StatusChip status={plant.status} />,
+    location: <LocationBadge location={plant.location} />,
+  };
+
   return (
     <>
       <TableRow
         onClick={onToggle}
         sx={{
-          borderBottom: '1px solid',
-          borderColor: '#f8fafc',
+          borderBottom: '1px solid', borderColor: '#f8fafc',
           bgcolor: isSelected ? '#f0fdf4' : (i % 2 === 0 ? 'white' : '#fafafa'),
-          cursor: 'pointer',
-          transition: 'background 0.1s',
+          cursor: 'pointer', transition: 'background 0.1s',
           '&:hover': { bgcolor: isSelected ? '#f0fdf4' : '#f8fafc' },
         }}
       >
-        <TableCell>
-          <Typography sx={{ fontFamily: 'monospace', fontSize: 12, color: 'text.secondary', fontWeight: 600 }}>
-            {plant.id}
-          </Typography>
-        </TableCell>
-        <TableCell>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-            <Box sx={{
-              width: 30, height: 30, borderRadius: 1,
-              background: 'linear-gradient(135deg, #d1fae5, #a7f3d0)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 15, flexShrink: 0,
-            }}>
-              🌱
-            </Box>
-            <Typography sx={{ fontWeight: 600, fontSize: 14, color: 'text.primary' }}>
-              {plant.name}
-            </Typography>
-          </Box>
-        </TableCell>
-        <TableCell>
-          <Typography sx={{ fontFamily: 'monospace', fontSize: 11, color: 'text.disabled' }}>
-            {plant.batch}
-          </Typography>
-        </TableCell>
-        <TableCell>
-          <Typography sx={{ fontWeight: 700, color: 'primary.dark', fontSize: 14 }}>
-            £{plant.price.toFixed(2)}
-          </Typography>
-        </TableCell>
-        <TableCell><StatusChip status={plant.status} /></TableCell>
-        <TableCell><LocationBadge location={plant.location} /></TableCell>
+        {visibleColumns.map(col => (
+          <TableCell key={col.key}>{cellContent[col.key]}</TableCell>
+        ))}
         <TableCell>
           <Box sx={{ display: 'flex', gap: 0.75 }}>
             <ActionBtn label="Edit" color="#16a34a" bg="#f0fdf4" border="#bbf7d0" />
@@ -198,13 +234,9 @@ function ExpandableRow({ plant, i, isSelected, onToggle, onClose }) {
 
       {/* Expanded detail row */}
       <TableRow>
-        <TableCell colSpan={7} sx={{ p: 0, border: 0 }}>
+        <TableCell colSpan={colSpan} sx={{ p: 0, border: 0 }}>
           <Collapse in={isSelected} unmountOnExit>
-            <Box sx={{
-              bgcolor: '#f0fdf4',
-              borderTop: '2px solid #bbf7d0',
-              p: '20px 24px',
-            }}>
+            <Box sx={{ bgcolor: '#f0fdf4', borderTop: '2px solid #bbf7d0', p: '20px 24px' }}>
               <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'flex-start' }}>
                 <Box>
                   <Typography variant="overline" color="text.secondary">Plant Details</Typography>
@@ -225,12 +257,8 @@ function ExpandableRow({ plant, i, isSelected, onToggle, onClose }) {
                   </Box>
                 ))}
                 <Box sx={{ ml: 'auto', display: 'flex', gap: 1, alignSelf: 'center', flexWrap: 'wrap' }}>
-                  <Button variant="contained" color="primary" size="small" sx={{ fontWeight: 600 }}>
-                    Update Status
-                  </Button>
-                  <Button variant="outlined" color="primary" size="small" sx={{ fontWeight: 600 }}>
-                    Move Plant
-                  </Button>
+                  <Button variant="contained" color="primary" size="small" sx={{ fontWeight: 600 }}>Update Status</Button>
+                  <Button variant="outlined" color="primary" size="small" sx={{ fontWeight: 600 }}>Move Plant</Button>
                   <Button variant="outlined" size="small" onClick={e => { e.stopPropagation(); onClose(); }}
                     sx={{ fontWeight: 600, borderColor: '#e2e8f0', color: 'text.secondary' }}>
                     Close
@@ -251,14 +279,8 @@ function ActionBtn({ label, color, bg, border }) {
       size="small"
       onClick={e => e.stopPropagation()}
       sx={{
-        py: '2px',
-        px: 1.25,
-        minWidth: 'auto',
-        fontSize: 11,
-        fontWeight: 600,
-        bgcolor: bg,
-        color,
-        border: `1px solid ${border}`,
+        py: '2px', px: 1.25, minWidth: 'auto', fontSize: 11, fontWeight: 600,
+        bgcolor: bg, color, border: `1px solid ${border}`,
         '&:hover': { bgcolor: bg, opacity: 0.85 },
       }}
     >
@@ -275,9 +297,7 @@ function PagBtn({ disabled, onClick, label }) {
       variant="outlined"
       size="small"
       sx={{
-        px: 1.75,
-        fontSize: 13,
-        fontWeight: 600,
+        px: 1.75, fontSize: 13, fontWeight: 600,
         borderColor: '#e2e8f0',
         color: disabled ? 'text.disabled' : '#475569',
         bgcolor: disabled ? '#f8fafc' : 'white',

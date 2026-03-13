@@ -17,7 +17,7 @@ import LocationBadge from './LocationBadge';
 const CAMERA_DIV_ID = 'jds-camera-reader';
 
 export default function ScannerPanel() {
-  const [mode, setMode]             = useState('keyboard'); // 'keyboard' | 'camera'
+  const [mode, setMode]             = useState('camera'); // 'keyboard' | 'camera'
   const [scanInput, setScanInput]   = useState('');
   const [scanResult, setScanResult] = useState(null);
   const [cameraError, setCameraError] = useState(null);
