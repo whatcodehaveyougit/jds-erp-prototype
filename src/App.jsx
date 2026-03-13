@@ -19,7 +19,7 @@ export default function App() {
   const [scanMode, setScanMode]           = useState(false);
   const [showLocations, setShowLocations] = useState(false);
 
-  const { plants, loading: plantsLoading, error: plantsError, updateQty, updatePotSize } = usePlants();
+  const { plants, loading: plantsLoading, error: plantsError, updateQty, updatePotSize, updateStatus } = usePlants();
   const { locations, setLocations, loading: locationsLoading, addLocation }              = useLocations();
 
   return (
@@ -45,6 +45,7 @@ export default function App() {
             plantsError={plantsError}
             updateQty={updateQty}
             updatePotSize={updatePotSize}
+            updateStatus={updateStatus}
           />
         } />
         <Route path="/locations"      element={<LocationsPage />} />
@@ -58,7 +59,7 @@ function PlantsPage({
   scanMode, showLocations, setShowLocations,
   locations, setLocations, addLocation, locationsLoading,
   plants, plantsLoading, plantsError,
-  updateQty, updatePotSize,
+  updateQty, updatePotSize, updateStatus,
 }) {
   const [search, setSearch]             = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -142,6 +143,7 @@ function PlantsPage({
               setSelectedRow={setSelectedRow}
               onUpdateQty={updateQty}
               onUpdatePotSize={updatePotSize}
+              onUpdateStatus={updateStatus}
             />
           </>
         )}

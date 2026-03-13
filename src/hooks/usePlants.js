@@ -30,5 +30,10 @@ export function usePlants() {
     if (!error) setPlants(prev => prev.map(p => p.id === id ? { ...p, potSize } : p));
   };
 
-  return { plants, loading, error, updateQty, updatePotSize };
+  const updateStatus = async (id, status) => {
+    const { error } = await supabase.from('plants').update({ status }).eq('id', id);
+    if (!error) setPlants(prev => prev.map(p => p.id === id ? { ...p, status } : p));
+  };
+
+  return { plants, loading, error, updateQty, updatePotSize, updateStatus };
 }
