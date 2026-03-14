@@ -43,7 +43,7 @@ const LOW_STOCK_THRESHOLD = 5;
 
 const POT_SIZES = ['7cm', '9cm', '1L', '2L', '3L', '5L', '10L', '20L'];
 
-export default function PlantTable({ filtered, search, page, setPage, sortConfig, onSort, selectedRow, setSelectedRow, onUpdateQty, onUpdatePotSize, onUpdateStatus }) {
+export default function PlantTable({ filtered, search, page, setPage, sortConfig, onSort, selectedRow, setSelectedRow, onUpdateQty, onUpdatePotSize, onUpdateStatus, pendingPlantIds }) {
   const totalPages = Math.ceil(filtered.length / ROWS_PER_PAGE);
   const paginated  = filtered.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
 
@@ -156,6 +156,7 @@ export default function PlantTable({ filtered, search, page, setPage, sortConfig
                   onUpdateQty={onUpdateQty}
                   onUpdatePotSize={onUpdatePotSize}
                   onUpdateStatus={onUpdateStatus}
+                  isStatusPending={pendingPlantIds.has(plant.id)}
                 />
 
               );
@@ -190,11 +191,11 @@ export default function PlantTable({ filtered, search, page, setPage, sortConfig
   );
 }
 
-function StatusCell({ plant, onUpdateStatus }) {
+function StatusCell({ plant, onUpdateStatus, isStatusPending }) {
   const [anchor, setAnchor] = useState(null);
 
-  const handleSelect = (status) => {
-    onUpdateStatus(plant.id, status);
+  const handleSelect = async (status) => {
+    await onUpdateStatus(plant.id, status);
     setAnchor(null);
   };
 
@@ -204,7 +205,7 @@ function StatusCell({ plant, onUpdateStatus }) {
         onClick={e => { e.stopPropagation(); setAnchor(e.currentTarget); }}
         sx={{ display: 'inline-flex', cursor: 'pointer', '&:hover': { opacity: 0.8 } }}
       >
-        <StatusChip status={plant.status} />
+        <StatusChip status={plant.status} pending={isStatusPending} />
       </Box>
       <Menu
         anchorEl={anchor}
@@ -291,7 +292,7 @@ function QtyCell({ plant, onUpdateQty }) {
   );
 }
 
-function ExpandableRow({ plant, i, isSelected, visibleColumns, colSpan, onToggle, onClose, onUpdateQty, onUpdatePotSize, onUpdateStatus }) {
+function ExpandableRow({ plant, i, isSelected, visibleColumns, colSpan, onToggle, onClose, onUpdateQty, onUpdatePotSize, onUpdateStatus, isStatusPending }) {
   const cellContent = {
     name: (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
@@ -325,7 +326,7 @@ function ExpandableRow({ plant, i, isSelected, visibleColumns, colSpan, onToggle
     ),
     potSize:  <PotSizeCell plant={plant} onUpdatePotSize={onUpdatePotSize} />,
     qty:      <QtyCell plant={plant} onUpdateQty={onUpdateQty} />,
-    status:   <StatusCell plant={plant} onUpdateStatus={onUpdateStatus} />,
+    status:   <StatusCell plant={plant} onUpdateStatus={onUpdateStatus} isStatusPending={isStatusPending} />,
     location: <LocationBadge location={plant.location} />,
   };
 
@@ -366,7 +367,7 @@ function ExpandableRow({ plant, i, isSelected, visibleColumns, colSpan, onToggle
                   { label: 'Plant ID',         value: plant.id },
                   { label: 'Price',            value: `£${plant.price.toFixed(2)}` },
                   { label: 'Current Location', value: <LocationBadge location={plant.location} /> },
-                  { label: 'Status',           value: <StatusChip status={plant.status} /> },
+                  { label: 'Status',           value: <StatusChip status={plant.status} pending={isStatusPending} /> },
                 ].map(detail => (
                   <Box key={detail.label}>
                     <Typography variant="overline" color="text.disabled">{detail.label}</Typography>
