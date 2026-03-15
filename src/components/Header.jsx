@@ -19,8 +19,9 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import AddLocationIcon from '@mui/icons-material/AddLocation';
 import AddIcon from '@mui/icons-material/Add';
 import PaletteIcon from '@mui/icons-material/Palette';
+import PendingActionsIcon from '@mui/icons-material/PendingActions';
 
-export default function Header({ scanMode, setScanMode, onOpenLocations }) {
+export default function Header({ scanMode, setScanMode, onOpenLocations, queuedStatusCount = 0 }) {
   const { pathname } = useLocation();
   const navigate     = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -43,6 +44,12 @@ export default function Header({ scanMode, setScanMode, onOpenLocations }) {
       icon:   <PaletteIcon />,
       onClick: () => { navigate('/design-system'); setDrawerOpen(false); },
       active: pathname === '/design-system',
+    },
+    {
+      label:  queuedStatusCount > 0 ? `Queued Updates (${queuedStatusCount})` : 'Queued Updates',
+      icon:   <PendingActionsIcon />,
+      onClick: () => { navigate('/queued-updates'); setDrawerOpen(false); },
+      active: pathname === '/queued-updates',
     },
     {
       label:  'Add Location',

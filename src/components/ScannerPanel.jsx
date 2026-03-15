@@ -10,13 +10,12 @@ import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
-import { PLANTS } from '../data/plants';
 import StatusChip from './StatusChip';
 import LocationBadge from './LocationBadge';
 
 const CAMERA_DIV_ID = 'jds-camera-reader';
 
-export default function ScannerPanel() {
+export default function ScannerPanel({ plants = [] }) {
   const [mode, setMode]             = useState('camera'); // 'keyboard' | 'camera'
   const [scanInput, setScanInput]   = useState('');
   const [scanResult, setScanResult] = useState(null);
@@ -65,7 +64,7 @@ export default function ScannerPanel() {
 
   const handleLookup = (value) => {
     const trimmed = value.trim();
-    const match = PLANTS.find(p =>
+    const match = plants.find(p =>
       p.id === trimmed ||
       p.location === trimmed ||
       p.batch === trimmed

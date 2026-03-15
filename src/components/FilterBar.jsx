@@ -7,6 +7,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import { STATUS_CONFIG } from '../constants/config';
 
 export default function FilterBar({ search, setSearch, statusFilter, setStatusFilter, statusCounts, onPageReset }) {
+  const FILTER_KEYS = ['All', 'Pending', ...Object.keys(STATUS_CONFIG)];
+
   return (
     <Paper
       variant="outlined"
@@ -37,18 +39,25 @@ export default function FilterBar({ search, setSearch, statusFilter, setStatusFi
 
       {/* Status pills */}
       <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
-        {['All', ...Object.keys(STATUS_CONFIG)].map(s => {
+        {FILTER_KEYS.map(s => {
           const active = statusFilter === s;
-          const cfg = STATUS_CONFIG[s];
+          const cfg = s === 'Pending'
+            ? { color: '#b45309', bg: '#fef3c7', label: 'Pending' }
+            : STATUS_CONFIG[s];
+
+          const label = s === 'All'
+            ? `All (${statusCounts.All || 0})`
+            : s === 'Pending'
+              ? `Pending (${statusCounts.Pending || 0})`
+              : `${STATUS_CONFIG[s].label} (${statusCounts[s] || 0})`;
+
           return (
             <Chip
               key={s}
               size="small"
               clickable
               onClick={() => { setStatusFilter(s); onPageReset(); }}
-              label={s === 'All'
-                ? `All (${statusCounts['All']})`
-                : `${STATUS_CONFIG[s].label} (${statusCounts[s]})`}
+              label={label}
               sx={{
                 borderRadius: '20px',
                 border: '1.5px solid',
