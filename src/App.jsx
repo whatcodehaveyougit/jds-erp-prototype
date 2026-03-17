@@ -19,7 +19,7 @@ export default function App() {
   const [scanMode, setScanMode]           = useState(false);
   const [showLocations, setShowLocations] = useState(false);
 
-  const { plants, loading: plantsLoading, error: plantsError, updateQty, updatePotSize, updateStatus } = usePlants();
+  const { plants, loading: plantsLoading, error: plantsError, updateQty, updatePotSize, updateStatus, updateLocation, addPlant } = usePlants();
   const { locations, setLocations, loading: locationsLoading, addLocation }              = useLocations();
 
   return (
@@ -46,6 +46,8 @@ export default function App() {
             updateQty={updateQty}
             updatePotSize={updatePotSize}
             updateStatus={updateStatus}
+            updateLocation={updateLocation}
+            addPlant={addPlant}
           />
         } />
         <Route path="/locations"      element={<LocationsPage />} />
@@ -59,11 +61,10 @@ function PlantsPage({
   scanMode, showLocations, setShowLocations,
   locations, setLocations, addLocation, locationsLoading,
   plants, plantsLoading, plantsError,
-  updateQty, updatePotSize, updateStatus,
+  updateQty, updatePotSize, updateStatus, updateLocation, addPlant,
 }) {
   const [search, setSearch]             = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [selectedRow, setSelectedRow]   = useState(null);
   const [sortConfig, setSortConfig]     = useState({ key: 'name', dir: 'asc' });
   const [page, setPage]                 = useState(0);
 
@@ -139,11 +140,12 @@ function PlantsPage({
               setPage={setPage}
               sortConfig={sortConfig}
               onSort={handleSort}
-              selectedRow={selectedRow}
-              setSelectedRow={setSelectedRow}
               onUpdateQty={updateQty}
               onUpdatePotSize={updatePotSize}
               onUpdateStatus={updateStatus}
+              onUpdateLocation={updateLocation}
+              onAddPlant={addPlant}
+              allPlants={plants}
             />
           </>
         )}
